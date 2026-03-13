@@ -11,20 +11,59 @@ private let borderSubtle = Color.white.opacity(0.05)
 struct MainPopupView: View {
     @EnvironmentObject var state: StandUpState
     @EnvironmentObject var settings: SettingsStore
-    @Environment(\.openWindow) private var openWindow
-    
+    @State private var showingSettings = false
+    @State private var backButtonHovered = false
+    @State private var pauseButtonHovered = false
+    @State private var settingsButtonHovered = false
+    @State private var standButtonHovered = false
+    @State private var exitButtonHovered = false
+
     var body: some View {
         VStack(spacing: 0) {
-            header
-            stateBlock
-            timerRing
-            statsRow
-            actionButtons
-            footer
+            if showingSettings {
+                settingsHeader
+                SettingsFormContent()
+                    .environmentObject(settings)
+            } else {
+                header
+                stateBlock
+                timerRing
+                statsRow
+                actionButtons
+                footer
+            }
         }
+        .frame(width: showingSettings ? 340 : 300)
+        .frame(minHeight: showingSettings ? 620 : nil, maxHeight: 800)
         .background(bgDark)
     }
-    
+
+    private var settingsHeader: some View {
+        HStack {
+            Button(action: { showingSettings = false }) {
+                Text("Назад")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(purple)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(backButtonHovered ? purple.opacity(0.2) : Color.clear)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(purple, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            .onHover { backButtonHovered = $0 }
+            Spacer()
+        }
+        .overlay(alignment: .center) {
+            Text("Настройки")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(textPrimary)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .overlay(alignment: .bottom) { Divider().background(borderSubtle) }
+    }
+
     private var header: some View {
         HStack {
             Image(systemName: state.phase == .sitting ? "chair.fill" : "figure.stand")
@@ -38,18 +77,17 @@ struct MainPopupView: View {
                 .fill(purple)
                 .frame(width: 7, height: 7)
                 .shadow(color: purple.opacity(0.8), radius: 3)
-            Button(action: {
-                if let win = NSApplication.shared.windows.first(where: { $0.title == "Настройки" }) {
-                    win.makeKeyAndOrderFront(nil)
-                } else {
-                    openWindow(id: "settings")
-                }
-            }) {
+            Button(action: { showingSettings = true }) {
                 Image(systemName: "gearshape")
                     .font(.system(size: 14))
-                    .foregroundStyle(textMuted)
+                    .foregroundStyle(purple)
+                    .frame(width: 32, height: 28)
+                    .background(settingsButtonHovered ? purple.opacity(0.2) : Color.clear)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(purple, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
+            .onHover { settingsButtonHovered = $0 }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
@@ -152,24 +190,34 @@ struct MainPopupView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .background(
-                    LinearGradient(colors: [purple, purple.opacity(0.9)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    LinearGradient(
+                        colors: standButtonHovered
+                            ? [purpleLight, purple]
+                            : [purple, purple.opacity(0.9)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
                 )
                 .foregroundStyle(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
+                .shadow(color: standButtonHovered ? purple.opacity(0.5) : .clear, radius: 8, y: 2)
+                .animation(.easeInOut(duration: 0.15), value: standButtonHovered)
             }
             .buttonStyle(.plain)
+            .onHover { standButtonHovered = $0 }
             
             Button(action: { state.togglePause() }) {
                 Label(state.isPaused ? "Запустить" : "Пауза", systemImage: state.isPaused ? "play.fill" : "pause.fill")
                     .font(.system(size: 12, weight: .medium))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(Color.white.opacity(0.04))
-                    .foregroundStyle(textMuted)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(borderSubtle, lineWidth: 1))
+                    .foregroundStyle(purple)
+                    .background(pauseButtonHovered ? purple.opacity(0.2) : Color.clear)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(purple, lineWidth: 1))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .buttonStyle(.plain)
+            .onHover { pauseButtonHovered = $0 }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
@@ -190,7 +238,13 @@ struct MainPopupView: View {
                 NSApplication.shared.terminate(nil)
             }
             .font(.system(size: 11))
-            .foregroundStyle(textMuted)
+            .foregroundStyle(exitButtonHovered ? textPrimary : textMuted)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(exitButtonHovered ? Color.white.opacity(0.08) : Color.clear)
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(exitButtonHovered ? borderSubtle : Color.clear, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .onHover { exitButtonHovered = $0 }
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 16)

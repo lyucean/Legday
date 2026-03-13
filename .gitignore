@@ -5,3 +5,6 @@ DerivedData/
 
 # Release artifacts (zip created for GitHub Releases)
 release/
+
+# Секреты (токен для GitHub Releases)
+.env

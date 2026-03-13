@@ -29,22 +29,10 @@ struct StandUpApp: App {
             MainPopupView()
                 .environmentObject(state)
                 .environmentObject(settings)
-                .frame(width: 300)
         } label: {
             MenuBarLabel(state: state, settings: settings)
         }
         .menuBarExtraStyle(.window)
-        
-        WindowGroup("Настройки", id: "settings") {
-            SettingsView()
-                .environmentObject(settings)
-                .frame(width: 340, height: 620)
-        }
-        .windowStyle(.hiddenTitleBar)
-        .windowResizability(.contentSize)
-        .defaultSize(width: 340, height: 620)
-        .windowBackgroundDragBehavior(.enabled)
-        .commandsRemoved()
     }
 }
 
