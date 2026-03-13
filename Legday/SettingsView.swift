@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 private let bgDark = Color(red: 0.086, green: 0.086, blue: 0.165)
 private let purple = Color(red: 0.49, green: 0.23, blue: 0.93)
@@ -32,20 +33,44 @@ struct SettingsView: View {
         }
         .frame(width: 340, height: 620)
         .background(bgDark)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .onAppear {
+            DispatchQueue.main.async {
+                guard let win = NSApplication.shared.windows.first(where: { $0.title == "Настройки" }) else { return }
+                win.makeKeyAndOrderFront(nil)
+                win.isOpaque = false
+                win.backgroundColor = .clear
+                win.contentView?.wantsLayer = true
+                win.contentView?.layer?.cornerRadius = 16
+                win.contentView?.layer?.masksToBounds = true
+                win.standardWindowButton(.closeButton)?.isHidden = true
+                win.standardWindowButton(.miniaturizeButton)?.isHidden = true
+                win.standardWindowButton(.zoomButton)?.isHidden = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            if let win = NSApplication.shared.windows.first(where: { $0.title == "Настройки" }) {
+                win.standardWindowButton(.closeButton)?.isHidden = true
+                win.standardWindowButton(.miniaturizeButton)?.isHidden = true
+                win.standardWindowButton(.zoomButton)?.isHidden = true
+            }
+        }
     }
     
     private var header: some View {
         HStack {
-            Button(action: { dismissWindow(id: "settings") }) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(purple)
-            }
-            .buttonStyle(.plain)
             Text("Настройки")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(textPrimary)
             Spacer()
+            Button(action: { dismissWindow(id: "settings") }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(textMuted)
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)

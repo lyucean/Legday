@@ -40,8 +40,10 @@ struct StandUpApp: App {
                 .environmentObject(settings)
                 .frame(width: 340, height: 620)
         }
+        .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .defaultSize(width: 340, height: 620)
+        .windowBackgroundDragBehavior(.enabled)
         .commandsRemoved()
     }
 }
