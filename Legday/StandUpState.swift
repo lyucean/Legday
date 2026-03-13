@@ -162,10 +162,10 @@ final class StandUpState: ObservableObject {
             return
         }
         pendingNotificationReminder = true
-        NotificationManager.shared.showStandReminder(
-            standDuration: settings.standDurationMinutes,
-            sound: settings.soundEnabled
-        )
+        if settings.soundEnabled {
+            playToggleSound()
+        }
+        ReminderWindowManager.shared.show(standDuration: settings.standDurationMinutes)
     }
     
     private func scheduleNotification(in seconds: Int) {

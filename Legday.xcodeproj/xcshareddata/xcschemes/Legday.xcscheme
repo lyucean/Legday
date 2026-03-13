@@ -17,8 +17,8 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "847A650A2CC0382500469E78"
                BuildableName = "Legday.app"
-               BlueprintName = "LanguageSwitcher"
-               ReferencedContainer = "container:LanguageSwitcher.xcodeproj">
+               BlueprintName = "Legday"
+               ReferencedContainer = "container:Legday.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -47,8 +47,8 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "847A650A2CC0382500469E78"
             BuildableName = "Legday.app"
-            BlueprintName = "LanguageSwitcher"
-            ReferencedContainer = "container:LanguageSwitcher.xcodeproj">
+            BlueprintName = "Legday"
+            ReferencedContainer = "container:Legday.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -64,8 +64,8 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "847A650A2CC0382500469E78"
             BuildableName = "Legday.app"
-            BlueprintName = "LanguageSwitcher"
-            ReferencedContainer = "container:LanguageSwitcher.xcodeproj">
+            BlueprintName = "Legday"
+            ReferencedContainer = "container:Legday.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

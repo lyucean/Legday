@@ -31,7 +31,7 @@ final class NotificationManager: NSObject {
         center.removePendingNotificationRequests(withIdentifiers: ["standReminder"])
         let content = UNMutableNotificationContent()
         content.title = "Время встать! 🧘"
-        content.body = "Поработайте стоя \(standDuration) минут — спина скажет спасибо"
+        content.body = "Поработайте стоя \(standDuration) минут - спина скажет спасибо"
         content.categoryIdentifier = standCategoryId
         content.sound = sound ? .default : nil
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(seconds), repeats: false)
@@ -42,7 +42,7 @@ final class NotificationManager: NSObject {
     func showStandReminder(standDuration: Int, sound: Bool) {
         let content = UNMutableNotificationContent()
         content.title = "Время встать! 🧘"
-        content.body = "Поработайте стоя \(standDuration) минут — спина скажет спасибо"
+        content.body = "Поработайте стоя \(standDuration) минут - спина скажет спасибо"
         content.categoryIdentifier = standCategoryId
         content.sound = sound ? .default : nil
         let request = UNNotificationRequest(identifier: "standReminderNow", content: content, trigger: nil)

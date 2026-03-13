@@ -137,10 +137,10 @@ struct SettingsView: View {
     
     private var showNotificationButton: some View {
         Button(action: {
-            NotificationManager.shared.showStandReminder(
-                standDuration: settings.standDurationMinutes,
-                sound: settings.soundEnabled
-            )
+            if settings.soundEnabled {
+                StandUpState.shared.playToggleSound()
+            }
+            ReminderWindowManager.shared.show(standDuration: settings.standDurationMinutes)
         }) {
             HStack(spacing: 6) {
                 Image(systemName: "bell.badge")

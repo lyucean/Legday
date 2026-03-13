@@ -23,9 +23,9 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		847A650D2CC0382500469E78 /* LanguageSwitcher */ = {
+		847A650D2CC0382500469E78 /* Legday */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = LanguageSwitcher;
+			path = Legday;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -44,7 +44,7 @@
 		847A65022CC0382500469E78 = {
 			isa = PBXGroup;
 			children = (
-				847A650D2CC0382500469E78 /* LanguageSwitcher */,
+				847A650D2CC0382500469E78 /* Legday */,
 				847A650C2CC0382500469E78 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -60,9 +60,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		847A650A2CC0382500469E78 /* LanguageSwitcher */ = {
+		847A650A2CC0382500469E78 /* Legday */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 847A65122CC0382500469E78 /* Build configuration list for PBXNativeTarget "LanguageSwitcher" */;
+			buildConfigurationList = 847A65122CC0382500469E78 /* Build configuration list for PBXNativeTarget "Legday" */;
 			buildPhases = (
 				847A65072CC0382500469E78 /* Sources */,
 				847A65082CC0382500469E78 /* Frameworks */,
@@ -73,12 +73,12 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				847A650D2CC0382500469E78 /* LanguageSwitcher */,
+				847A650D2CC0382500469E78 /* Legday */,
 			);
-			name = LanguageSwitcher;
+			name = Legday;
 			packageProductDependencies = (
 			);
-			productName = LanguageSwitcher;
+			productName = Legday;
 			productReference = 847A650B2CC0382500469E78 /* Legday.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -97,7 +97,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 847A65062CC0382500469E78 /* Build configuration list for PBXProject "LanguageSwitcher" */;
+			buildConfigurationList = 847A65062CC0382500469E78 /* Build configuration list for PBXProject "Legday" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -111,7 +111,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				847A650A2CC0382500469E78 /* LanguageSwitcher */,
+				847A650A2CC0382500469E78 /* Legday */,
 			);
 		};
 /* End PBXProject section */
@@ -255,7 +255,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
-				INFOPLIST_FILE = LanguageSwitcher/Info.plist;
+				INFOPLIST_FILE = Legday/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -273,7 +273,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
-				INFOPLIST_FILE = LanguageSwitcher/Info.plist;
+				INFOPLIST_FILE = Legday/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -288,7 +288,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		847A65062CC0382500469E78 /* Build configuration list for PBXProject "LanguageSwitcher" */ = {
+		847A65062CC0382500469E78 /* Build configuration list for PBXProject "Legday" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				847A65102CC0382500469E78 /* Debug */,
@@ -297,7 +297,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		847A65122CC0382500469E78 /* Build configuration list for PBXNativeTarget "LanguageSwitcher" */ = {
+		847A65122CC0382500469E78 /* Build configuration list for PBXNativeTarget "Legday" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				847A65132CC0382500469E78 /* Debug */,
