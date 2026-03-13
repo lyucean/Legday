@@ -160,7 +160,7 @@ struct MainPopupView: View {
             .buttonStyle(.plain)
             
             Button(action: { state.togglePause() }) {
-                Label("Пауза", systemImage: "pause.fill")
+                Label(state.isPaused ? "Запустить" : "Пауза", systemImage: state.isPaused ? "play.fill" : "pause.fill")
                     .font(.system(size: 12, weight: .medium))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
