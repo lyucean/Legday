@@ -24,12 +24,13 @@ final class ReminderWindowManager {
             
             let panel = NSPanel(
                 contentRect: NSRect(x: 0, y: 0, width: 320, height: 240),
-                styleMask: [.titled, .closable, .nonactivatingPanel],
+                styleMask: [.borderless, .nonactivatingPanel],
                 backing: .buffered,
                 defer: false
             )
             panel.contentView = hosting
-            panel.title = "Legday"
+            panel.isOpaque = false
+            panel.backgroundColor = .clear
             panel.isFloatingPanel = true
             panel.becomesKeyOnlyIfNeeded = false
             panel.hidesOnDeactivate = false
