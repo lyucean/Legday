@@ -27,9 +27,23 @@
 		847A65152CC0382500469E78 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Legday/Assets.xcassets"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		847A65182CC0382500469E79 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				Assets.xcassets,
+			);
+			target = 847A650A2CC0382500469E78 /* Legday */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		847A650D2CC0382500469E78 /* Legday */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				847A65182CC0382500469E79 /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
 			path = Legday;
 			sourceTree = "<group>";
 		};
