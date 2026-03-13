@@ -1,0 +1,7 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+
+# Release artifacts (zip created for GitHub Releases)
+release/
