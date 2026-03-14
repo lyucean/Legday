@@ -12,7 +12,9 @@ struct MainPopupView: View {
     @EnvironmentObject var state: StandUpState
     @EnvironmentObject var settings: SettingsStore
     @State private var showingSettings = false
+    @State private var showingJournal = false
     @State private var backButtonHovered = false
+    @State private var journalButtonHovered = false
     @State private var pauseButtonHovered = false
     @State private var settingsButtonHovered = false
     @State private var standButtonHovered = false
@@ -24,6 +26,9 @@ struct MainPopupView: View {
                 settingsHeader
                 SettingsFormContent()
                     .environmentObject(settings)
+            } else if showingJournal {
+                journalHeader
+                journalContent
             } else {
                 header
                 stateBlock
@@ -34,7 +39,7 @@ struct MainPopupView: View {
             }
         }
         .frame(width: showingSettings ? 340 : 300)
-        .frame(minHeight: showingSettings ? 700 : nil, maxHeight: 800)
+        .frame(minHeight: (showingSettings || showingJournal) ? 400 : nil, maxHeight: 800)
         .background(bgDark)
     }
 
@@ -77,6 +82,17 @@ struct MainPopupView: View {
                 .fill(purple)
                 .frame(width: 7, height: 7)
                 .shadow(color: purple.opacity(0.8), radius: 3)
+            Button(action: { showingJournal = true }) {
+                Image(systemName: "book.closed")
+                    .font(.system(size: 13))
+                    .foregroundStyle(purple)
+                    .frame(width: 28, height: 28)
+                    .background(journalButtonHovered ? purple.opacity(0.2) : Color.clear)
+                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(purple, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .buttonStyle(.plain)
+            .onHover { journalButtonHovered = $0 }
             Button(action: { showingSettings = true }) {
                 Image(systemName: "gearshape")
                     .font(.system(size: 14))
@@ -92,6 +108,77 @@ struct MainPopupView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
         .overlay(alignment: .bottom) { Divider().background(borderSubtle) }
+    }
+
+    private var journalHeader: some View {
+        HStack {
+            Button(action: { showingJournal = false }) {
+                Text("Назад")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(purple)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(backButtonHovered ? purple.opacity(0.2) : Color.clear)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(purple, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            .onHover { backButtonHovered = $0 }
+            Spacer()
+        }
+        .overlay(alignment: .center) {
+            Text("Журнал")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(textPrimary)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .overlay(alignment: .bottom) { Divider().background(borderSubtle) }
+    }
+
+    private var journalContent: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(state.journalEntries) { entry in
+                    HStack {
+                        Image(systemName: entry.type == "stand" ? "figure.stand" : "chair.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(purple)
+                            .frame(width: 24, alignment: .leading)
+                        Text(entry.type == "stand" ? "Встал" : "Сесть")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(textPrimary)
+                        Text(journalTimeString(entry.date))
+                            .font(.system(size: 12))
+                            .foregroundStyle(textMuted)
+                        Spacer()
+                        Button(action: { state.removeJournalEntry(id: entry.id) }) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                                .foregroundStyle(textMuted)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .overlay(alignment: .bottom) { Divider().background(borderSubtle) }
+                }
+                if state.journalEntries.isEmpty {
+                    Text("Пока нет записей")
+                        .font(.system(size: 13))
+                        .foregroundStyle(textMuted)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 32)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func journalTimeString(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "dd.MM  HH:mm"
+        return f.string(from: date)
     }
     
     private var stateBlock: some View {

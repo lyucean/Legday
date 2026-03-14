@@ -16,11 +16,11 @@ struct SettingsFormContent: View {
                 sectionLabel("Расписание")
                 reminderIntervalRow
                 standDurationRow
+                autoStartSittingRow
                 Divider().background(borderSubtle)
                 sectionLabel("Уведомления")
                 coloredIconRow
                 soundRow
-                doNotDisturbRow
                 launchAtLoginRow
                 showNotificationButton
                 Divider().background(borderSubtle)
@@ -72,6 +72,17 @@ struct SettingsFormContent: View {
         }
     }
 
+    private var autoStartSittingRow: some View {
+        settingsRow(
+            title: "Стартовать таймер сидеть автоматически",
+            subtitle: "Если выкл — после стояния таймер остановится на 00:00 и будет мигать"
+        ) {
+            Toggle("", isOn: $settings.autoStartSittingTimer)
+                .toggleStyle(.switch)
+                .tint(purple)
+        }
+    }
+
     private var coloredIconRow: some View {
         settingsRow(
             title: "Цветная иконка",
@@ -89,17 +100,6 @@ struct SettingsFormContent: View {
             subtitle: "При напоминании и при переключении Встать/Сесть"
         ) {
             Toggle("", isOn: $settings.soundEnabled)
-                .toggleStyle(.switch)
-                .tint(purple)
-        }
-    }
-
-    private var doNotDisturbRow: some View {
-        settingsRow(
-            title: "Не беспокоить",
-            subtitle: "Пауза во время митингов"
-        ) {
-            Toggle("", isOn: $settings.doNotDisturb)
                 .toggleStyle(.switch)
                 .tint(purple)
         }

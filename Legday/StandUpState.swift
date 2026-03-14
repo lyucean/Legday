@@ -7,6 +7,14 @@ enum StandUpPhase: String {
     case standing
 }
 
+struct JournalEntry: Identifiable, Codable {
+    let id: UUID
+    let date: Date
+    let type: String
+    static func stand(at date: Date = Date()) -> JournalEntry { JournalEntry(id: UUID(), date: date, type: "stand") }
+    static func sit(at date: Date = Date()) -> JournalEntry { JournalEntry(id: UUID(), date: date, type: "sit") }
+}
+
 final class StandUpState: ObservableObject {
     static let shared = StandUpState()
     
@@ -22,6 +30,7 @@ final class StandUpState: ObservableObject {
     @Published var trayBlinkVisible: Bool = true
     /// Включить тестовое мигание из настроек на несколько секунд.
     @Published var isTestTrayBlink: Bool = false
+    @Published var journalEntries: [JournalEntry] = []
     
     private var timer: Timer?
     private var blinkTimer: Timer?
@@ -34,6 +43,7 @@ final class StandUpState: ObservableObject {
     
     private init() {
         loadDailyStats()
+        loadJournal()
         resetIfNewDay()
         if !restoreTimerState() {
             startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
@@ -68,12 +78,36 @@ final class StandUpState: ObservableObject {
     func userStood() {
         pendingNotificationReminder = false
         stopBlinkTimerIfNeeded()
+        addJournalEntry(.stand())
         startPhase(.standing, durationSeconds: settings.standDurationMinutes * 60)
         recordStandCount()
     }
     
     func sitDown() {
+        addJournalEntry(.sit())
         startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
+    }
+    
+    func addJournalEntry(_ entry: JournalEntry) {
+        journalEntries.insert(entry, at: 0)
+        if journalEntries.count > 200 { journalEntries.removeLast() }
+        saveJournal()
+    }
+    
+    func removeJournalEntry(id: UUID) {
+        journalEntries.removeAll { $0.id == id }
+        saveJournal()
+    }
+    
+    private func loadJournal() {
+        guard let data = UserDefaults.standard.data(forKey: "journalEntries"),
+              let decoded = try? JSONDecoder().decode([JournalEntry].self, from: data) else { return }
+        journalEntries = decoded
+    }
+    
+    private func saveJournal() {
+        guard let data = try? JSONEncoder().encode(journalEntries) else { return }
+        UserDefaults.standard.set(data, forKey: "journalEntries")
     }
     
     func playToggleSound() {
@@ -97,9 +131,12 @@ final class StandUpState: ObservableObject {
         phaseEndDate = newEnd
         remainingSeconds = newRemaining
         nextReminderDate = newEnd
+        pendingNotificationReminder = false
+        stopBlinkTimerIfNeeded()
         if phase == .sitting {
             scheduleNotification(in: remainingSeconds)
         }
+        startTimer()
         saveTimerState()
     }
     
@@ -112,6 +149,7 @@ final class StandUpState: ObservableObject {
         remainingSeconds = max(0, Int(newEnd.timeIntervalSince(Date())))
         nextReminderDate = newEnd
         scheduleNotification(in: remainingSeconds)
+        startTimer()
         saveTimerState()
     }
     
@@ -179,34 +217,35 @@ final class StandUpState: ObservableObject {
     private func tick() {
         guard !isPaused, let end = phaseEndDate else { return }
         let left = Int(end.timeIntervalSince(Date()))
-        if left <= 0 && phase == .standing {
+        if left <= 0 && phase == .sitting {
             timer?.invalidate()
             timer = nil
-            if settings.soundEnabled {
-                playToggleSound()
-            }
-            startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
-            return
-        }
-        if left <= 0 && phase == .sitting {
+            remainingSeconds = 0
             if !pendingNotificationReminder {
                 showStandReminder()
             }
-            remainingSeconds = left
+            return
+        }
+        if left <= 0 && phase == .standing {
+            timer?.invalidate()
+            timer = nil
+            let shouldPlaySound = settings.soundEnabled
+            if settings.autoStartSittingTimer {
+                startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
+            } else {
+                stopSittingTimerAndBlink()
+            }
+            if shouldPlaySound {
+                DispatchQueue.main.async { [weak self] in
+                    self?.playToggleSound()
+                }
+            }
             return
         }
         remainingSeconds = left
     }
     
     private func showStandReminder() {
-        guard isWithinWorkingHours() else {
-            startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
-            return
-        }
-        if settings.doNotDisturb {
-            postpone15Minutes()
-            return
-        }
         pendingNotificationReminder = true
         startBlinkTimerIfNeeded()
         if settings.soundEnabled {
@@ -233,11 +272,29 @@ final class StandUpState: ObservableObject {
         if phase == .sitting {
             showStandReminder()
         } else {
-            if settings.soundEnabled {
-                playToggleSound()
+            let shouldPlaySound = settings.soundEnabled
+            if settings.autoStartSittingTimer {
+                startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
+            } else {
+                stopSittingTimerAndBlink()
             }
-            startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
+            if shouldPlaySound {
+                DispatchQueue.main.async { [weak self] in
+                    self?.playToggleSound()
+                }
+            }
         }
+    }
+
+    /// После стояния: не запускать обратный отсчёт сидения, а остановить на 00:00 и мигать.
+    private func stopSittingTimerAndBlink() {
+        phase = .sitting
+        phaseEndDate = Date()
+        remainingSeconds = 0
+        nextReminderDate = Date()
+        pendingNotificationReminder = true
+        startBlinkTimerIfNeeded()
+        saveTimerState()
     }
 
     /// Запустить тестовое мигание в трее на 5 секунд (кнопка «Моргнуть» в настройках).
@@ -329,15 +386,20 @@ final class StandUpState: ObservableObject {
 
         if left <= 0 {
             if phase == .sitting {
+                self.remainingSeconds = 0
                 showStandReminder()
-                if !paused {
-                    startTimer()
-                }
             } else {
-                if settings.soundEnabled {
-                    playToggleSound()
+                let shouldPlaySound = settings.soundEnabled
+                if settings.autoStartSittingTimer {
+                    startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
+                } else {
+                    stopSittingTimerAndBlink()
                 }
-                startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
+                if shouldPlaySound {
+                    DispatchQueue.main.async { [weak self] in
+                        self?.playToggleSound()
+                    }
+                }
             }
             return true
         }

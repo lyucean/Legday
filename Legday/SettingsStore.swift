@@ -10,10 +10,10 @@ final class SettingsStore: ObservableObject {
         static let reminderIntervalMinutes = "reminderIntervalMinutes"
         static let standDurationMinutes = "standDurationMinutes"
         static let soundEnabled = "soundEnabled"
-        static let doNotDisturb = "doNotDisturb"
         static let launchAtLogin = "launchAtLogin"
         static let workingHours = "workingHours"
         static let coloredIcon = "coloredIcon"
+        static let autoStartSittingTimer = "autoStartSittingTimer"
     }
     
     @Published var coloredIcon: Bool {
@@ -32,10 +32,6 @@ final class SettingsStore: ObservableObject {
         didSet { defaults.set(soundEnabled, forKey: Keys.soundEnabled) }
     }
     
-    @Published var doNotDisturb: Bool {
-        didSet { defaults.set(doNotDisturb, forKey: Keys.doNotDisturb) }
-    }
-    
     @Published var launchAtLogin: Bool {
         didSet {
             defaults.set(launchAtLogin, forKey: Keys.launchAtLogin)
@@ -45,6 +41,10 @@ final class SettingsStore: ObservableObject {
     
     @Published var workingHours: WorkingHoursPreset {
         didSet { defaults.set(workingHours.rawValue, forKey: Keys.workingHours) }
+    }
+    
+    @Published var autoStartSittingTimer: Bool {
+        didSet { defaults.set(autoStartSittingTimer, forKey: Keys.autoStartSittingTimer) }
     }
     
     enum WorkingHoursPreset: String, CaseIterable {
@@ -75,11 +75,11 @@ final class SettingsStore: ObservableObject {
         self.reminderIntervalMinutes = defaults.object(forKey: Keys.reminderIntervalMinutes) as? Int ?? 60
         self.standDurationMinutes = defaults.object(forKey: Keys.standDurationMinutes) as? Int ?? 20
         self.soundEnabled = defaults.object(forKey: Keys.soundEnabled) as? Bool ?? true
-        self.doNotDisturb = defaults.object(forKey: Keys.doNotDisturb) as? Bool ?? false
         self.launchAtLogin = defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? true
         self.coloredIcon = defaults.object(forKey: Keys.coloredIcon) as? Bool ?? true
         let raw = defaults.string(forKey: Keys.workingHours) ?? WorkingHoursPreset.h9_19.rawValue
         self.workingHours = WorkingHoursPreset(rawValue: raw) ?? .h9_19
+        self.autoStartSittingTimer = defaults.object(forKey: Keys.autoStartSittingTimer) as? Bool ?? true
     }
     
     private func setLaunchAtLogin(_ enabled: Bool) {
