@@ -120,26 +120,55 @@ struct MainPopupView: View {
         .padding(.vertical, 20)
     }
     
+    private var minusButtonDelta: Int {
+        state.remainingSeconds < 5 * 60 ? -1 : -5
+    }
+
+    private var minusButtonDisabled: Bool {
+        state.remainingSeconds < 60
+    }
+
     private var timerRing: some View {
-        ZStack {
-            Circle()
-                .stroke(purple.opacity(0.12), lineWidth: 6)
-                .frame(width: 110, height: 110)
-            Circle()
-                .trim(from: 0, to: state.timerProgress)
-                .stroke(purple, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                .frame(width: 110, height: 110)
-                .rotationEffect(.degrees(-90))
-                .shadow(color: purple.opacity(0.5), radius: 4)
-            VStack(spacing: 2) {
-                Text(state.formattedRemaining())
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(textPrimary)
-                    .monospacedDigit()
-                Text(state.phase == .sitting ? "до стенда" : "осталось")
-                    .font(.system(size: 10))
-                    .foregroundStyle(textMuted)
+        HStack(spacing: 12) {
+            Button(action: { state.adjustMinutes(minusButtonDelta) }) {
+                Text(state.remainingSeconds < 5 * 60 ? "-1" : "-5")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(minusButtonDisabled ? textMuted : purpleLight)
+                    .frame(width: 44, height: 44)
+                    .background(purple.opacity(minusButtonDisabled ? 0.08 : 0.2))
+                    .clipShape(Circle())
             }
+            .buttonStyle(.plain)
+            .disabled(minusButtonDisabled)
+            ZStack {
+                Circle()
+                    .stroke(purple.opacity(0.12), lineWidth: 6)
+                    .frame(width: 110, height: 110)
+                Circle()
+                    .trim(from: 0, to: state.timerProgress)
+                    .stroke(purple, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .frame(width: 110, height: 110)
+                    .rotationEffect(.degrees(-90))
+                    .shadow(color: purple.opacity(0.5), radius: 4)
+                VStack(spacing: 2) {
+                    Text(state.formattedRemaining())
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(textPrimary)
+                        .monospacedDigit()
+                    Text(state.phase == .sitting ? "до стенда" : "осталось")
+                        .font(.system(size: 10))
+                        .foregroundStyle(textMuted)
+                }
+            }
+            Button(action: { state.adjustMinutes(5) }) {
+                Text("+5")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(purpleLight)
+                    .frame(width: 44, height: 44)
+                    .background(purple.opacity(0.2))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
         }
         .padding(.bottom, 16)
     }

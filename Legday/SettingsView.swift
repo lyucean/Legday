@@ -117,25 +117,43 @@ struct SettingsFormContent: View {
     }
 
     private var showNotificationButton: some View {
-        Button(action: {
-            if settings.soundEnabled {
-                StandUpState.shared.playToggleSound()
+        HStack(spacing: 8) {
+            Button(action: {
+                if settings.soundEnabled {
+                    StandUpState.shared.playToggleSound()
+                }
+                ReminderWindowManager.shared.show(standDuration: settings.standDurationMinutes)
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "bell.badge")
+                        .font(.system(size: 12))
+                    Text("Показать уведомление")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundStyle(purpleLight)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(purple.opacity(0.2))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            ReminderWindowManager.shared.show(standDuration: settings.standDurationMinutes)
-        }) {
-            HStack(spacing: 6) {
-                Image(systemName: "bell.badge")
-                    .font(.system(size: 12))
-                Text("Показать уведомление")
-                    .font(.system(size: 12, weight: .medium))
+            .buttonStyle(.plain)
+            Button(action: {
+                StandUpState.shared.startTestTrayBlink()
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "eye")
+                        .font(.system(size: 12))
+                    Text("Моргнуть")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundStyle(purpleLight)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(purple.opacity(0.2))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            .foregroundStyle(purpleLight)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(purple.opacity(0.2))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
     }
 
     private var workingHoursRow: some View {

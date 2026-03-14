@@ -29,12 +29,16 @@ final class NotificationManager: NSObject {
     
     func scheduleStandReminder(in seconds: Int, standDuration: Int, sound: Bool) {
         center.removePendingNotificationRequests(withIdentifiers: ["standReminder"])
+        guard seconds > 0 else { return }
         let content = UNMutableNotificationContent()
         content.title = "Время встать! 🧘"
         content.body = "Поработайте стоя \(standDuration) минут - спина скажет спасибо"
         content.categoryIdentifier = standCategoryId
         content.sound = sound ? .default : nil
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(seconds), repeats: false)
+        // UNCalendarNotificationTrigger надёжнее на macOS, чем UNTimeIntervalNotificationTrigger
+        let fireDate = Date().addingTimeInterval(TimeInterval(seconds))
+        let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: fireDate)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         let request = UNNotificationRequest(identifier: "standReminder", content: content, trigger: trigger)
         center.add(request)
     }

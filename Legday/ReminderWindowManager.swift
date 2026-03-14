@@ -34,13 +34,13 @@ final class ReminderWindowManager {
             panel.isFloatingPanel = true
             panel.becomesKeyOnlyIfNeeded = false
             panel.hidesOnDeactivate = false
-            panel.level = .floating
+            panel.level = .popUpMenu
             panel.isReleasedWhenClosed = false
             
             self?.panel = panel
             panel.center()
-            panel.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
+            panel.makeKeyAndOrderFront(nil)
         }
     }
     

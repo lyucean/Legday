@@ -18,8 +18,13 @@ final class StandUpState: ObservableObject {
     @Published var standingMinutesToday: Int = 0
     @Published var streakDays: Int = 0
     @Published var pendingNotificationReminder: Bool = false
+    /// Для мигания в трее: true = иконка яркая, false = приглушённая.
+    @Published var trayBlinkVisible: Bool = true
+    /// Включить тестовое мигание из настроек на несколько секунд.
+    @Published var isTestTrayBlink: Bool = false
     
     private var timer: Timer?
+    private var blinkTimer: Timer?
     private var phaseEndDate: Date?
     private var standingPhaseStartDate: Date?
     private let calendar = Calendar.current
@@ -30,7 +35,9 @@ final class StandUpState: ObservableObject {
     private init() {
         loadDailyStats()
         resetIfNewDay()
-        startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
+        if !restoreTimerState() {
+            startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
+        }
     }
     
     func startPhase(_ newPhase: StandUpPhase, durationSeconds: Int) {
@@ -49,6 +56,7 @@ final class StandUpState: ObservableObject {
             NotificationManager.shared.cancelStandReminder()
         }
         startTimer()
+        saveTimerState()
     }
     
     func remindNow() {
@@ -59,6 +67,7 @@ final class StandUpState: ObservableObject {
     
     func userStood() {
         pendingNotificationReminder = false
+        stopBlinkTimerIfNeeded()
         startPhase(.standing, durationSeconds: settings.standDurationMinutes * 60)
         recordStandCount()
     }
@@ -70,15 +79,40 @@ final class StandUpState: ObservableObject {
     func playToggleSound() {
         NSSound(named: "Tink")?.play()
     }
+
+    /// Добавить или убрать минуты у текущего таймера (+5 / -5 / -1).
+    func adjustMinutes(_ delta: Int) {
+        guard let end = phaseEndDate else { return }
+        let newEnd = end.addingTimeInterval(TimeInterval(delta * 60))
+        let now = Date()
+        let newRemaining = Int(newEnd.timeIntervalSince(now))
+        if newRemaining <= 0 {
+            if phase == .sitting {
+                showStandReminder()
+            } else {
+                startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
+            }
+            return
+        }
+        phaseEndDate = newEnd
+        remainingSeconds = newRemaining
+        nextReminderDate = newEnd
+        if phase == .sitting {
+            scheduleNotification(in: remainingSeconds)
+        }
+        saveTimerState()
+    }
     
     func postpone15Minutes() {
         pendingNotificationReminder = false
+        stopBlinkTimerIfNeeded()
         let extra = 15 * 60
         let newEnd = (phaseEndDate ?? Date()).addingTimeInterval(TimeInterval(extra))
         phaseEndDate = newEnd
         remainingSeconds = max(0, Int(newEnd.timeIntervalSince(Date())))
         nextReminderDate = newEnd
         scheduleNotification(in: remainingSeconds)
+        saveTimerState()
     }
     
     func togglePause() {
@@ -103,11 +137,16 @@ final class StandUpState: ObservableObject {
                 }
             }
         }
+        saveTimerState()
     }
     
     func formattedRemaining() -> String {
-        let m = remainingSeconds / 60
-        let s = remainingSeconds % 60
+        let secs = abs(remainingSeconds)
+        let m = secs / 60
+        let s = secs % 60
+        if remainingSeconds < 0 {
+            return "-" + String(format: "%02d:%02d", m, s)
+        }
         return String(format: "%02d:%02d", m, s)
     }
     
@@ -125,7 +164,8 @@ final class StandUpState: ObservableObject {
             total = settings.standDurationMinutes * 60
         }
         guard total > 0 else { return 0 }
-        return Double(total - remainingSeconds) / Double(total)
+        let progress = Double(total - remainingSeconds) / Double(total)
+        return min(max(progress, 0), 1)
     }
     
     private func startTimer() {
@@ -139,14 +179,20 @@ final class StandUpState: ObservableObject {
     private func tick() {
         guard !isPaused, let end = phaseEndDate else { return }
         let left = Int(end.timeIntervalSince(Date()))
-        if left <= 0 {
+        if left <= 0 && phase == .standing {
             timer?.invalidate()
             timer = nil
-            if phase == .sitting {
-                showStandReminder()
-            } else {
-                startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
+            if settings.soundEnabled {
+                playToggleSound()
             }
+            startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
+            return
+        }
+        if left <= 0 && phase == .sitting {
+            if !pendingNotificationReminder {
+                showStandReminder()
+            }
+            remainingSeconds = left
             return
         }
         remainingSeconds = left
@@ -162,6 +208,7 @@ final class StandUpState: ObservableObject {
             return
         }
         pendingNotificationReminder = true
+        startBlinkTimerIfNeeded()
         if settings.soundEnabled {
             playToggleSound()
         }
@@ -177,6 +224,57 @@ final class StandUpState: ObservableObject {
         )
     }
     
+    /// Вызывать при активации приложения: если время напоминания уже прошло, показываем его (таймер в фоне мог не сработать).
+    func checkIfReminderDue() {
+        guard !isPaused, let end = phaseEndDate else { return }
+        if end.timeIntervalSince(Date()) > 0 { return }
+        timer?.invalidate()
+        timer = nil
+        if phase == .sitting {
+            showStandReminder()
+        } else {
+            if settings.soundEnabled {
+                playToggleSound()
+            }
+            startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
+        }
+    }
+
+    /// Запустить тестовое мигание в трее на 5 секунд (кнопка «Моргнуть» в настройках).
+    func startTestTrayBlink() {
+        isTestTrayBlink = true
+        startBlinkTimerIfNeeded()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+            self?.isTestTrayBlink = false
+            self?.stopBlinkTimerIfNeeded()
+        }
+    }
+
+    private func startBlinkTimerIfNeeded() {
+        guard (pendingNotificationReminder || isTestTrayBlink) && blinkTimer == nil else { return }
+        trayBlinkVisible = true
+        blinkTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                if self.pendingNotificationReminder || self.isTestTrayBlink {
+                    self.objectWillChange.send()
+                    self.trayBlinkVisible.toggle()
+                } else {
+                    self.stopBlinkTimerIfNeeded()
+                }
+            }
+        }
+        RunLoop.main.add(blinkTimer!, forMode: .common)
+    }
+
+    private func stopBlinkTimerIfNeeded() {
+        guard !pendingNotificationReminder && !isTestTrayBlink else { return }
+        blinkTimer?.invalidate()
+        blinkTimer = nil
+        trayBlinkVisible = true
+    }
+
     func isWithinWorkingHours() -> Bool {
         let preset = settings.workingHours
         guard let start = preset.startHour, let end = preset.endHour else { return true }
@@ -204,6 +302,59 @@ final class StandUpState: ObservableObject {
         standsToday = UserDefaults.standard.integer(forKey: "stands_\(key)")
         standingMinutesToday = UserDefaults.standard.integer(forKey: "standingMin_\(key)")
         streakDays = UserDefaults.standard.integer(forKey: "streakDays")
+    }
+
+    private func saveTimerState() {
+        let ud = UserDefaults.standard
+        ud.set(phase.rawValue, forKey: "timer_phase")
+        ud.set(phaseEndDate?.timeIntervalSince1970, forKey: "timer_phaseEndDate")
+        ud.set(isPaused, forKey: "timer_paused")
+    }
+
+    /// Восстанавливает фазу и оставшееся время после перезапуска. Возвращает true, если состояние восстановлено.
+    private func restoreTimerState() -> Bool {
+        let ud = UserDefaults.standard
+        guard let phaseRaw = ud.string(forKey: "timer_phase"),
+              let phase = StandUpPhase(rawValue: phaseRaw) else { return false }
+        guard let endTimestamp = ud.object(forKey: "timer_phaseEndDate") as? Double else { return false }
+        let savedEnd = Date(timeIntervalSince1970: endTimestamp)
+        let paused = ud.bool(forKey: "timer_paused")
+
+        self.phase = phase
+        self.phaseEndDate = savedEnd
+        self.isPaused = paused
+        let left = Int(savedEnd.timeIntervalSince(Date()))
+        self.remainingSeconds = left
+        self.nextReminderDate = savedEnd
+
+        if left <= 0 {
+            if phase == .sitting {
+                showStandReminder()
+                if !paused {
+                    startTimer()
+                }
+            } else {
+                if settings.soundEnabled {
+                    playToggleSound()
+                }
+                startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
+            }
+            return true
+        }
+
+        if phase == .standing {
+            let standDuration = TimeInterval(settings.standDurationMinutes * 60)
+            standingPhaseStartDate = savedEnd.addingTimeInterval(-standDuration)
+        }
+        if paused {
+            timer = nil
+        } else {
+            startTimer()
+            if phase == .sitting {
+                scheduleNotification(in: remainingSeconds)
+            }
+        }
+        return true
     }
     
     private func saveDailyStats() {
