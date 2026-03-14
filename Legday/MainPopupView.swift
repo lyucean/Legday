@@ -34,7 +34,7 @@ struct MainPopupView: View {
             }
         }
         .frame(width: showingSettings ? 340 : 300)
-        .frame(minHeight: showingSettings ? 620 : nil, maxHeight: 800)
+        .frame(minHeight: showingSettings ? 700 : nil, maxHeight: 800)
         .background(bgDark)
     }
 
