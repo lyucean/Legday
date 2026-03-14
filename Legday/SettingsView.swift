@@ -204,6 +204,6 @@ struct SettingsFormContent: View {
                 .foregroundStyle(purpleLight)
                 .tint(purpleLight)
         }
-        .padding(.bottom, 16)
+        .padding(.vertical, 20)
     }
 }

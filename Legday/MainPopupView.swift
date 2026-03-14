@@ -28,7 +28,12 @@ struct MainPopupView: View {
                     .environmentObject(settings)
             } else if showingJournal {
                 journalHeader
-                journalContent
+                ZStack(alignment: .center) {
+                    journalContent
+                    if showClearHistoryConfirm {
+                        journalClearHistoryOverlay
+                    }
+                }
             } else {
                 header
                 stateBlock
@@ -39,7 +44,7 @@ struct MainPopupView: View {
             }
         }
         .frame(width: showingSettings ? 340 : 300)
-        .frame(minHeight: (showingSettings || showingJournal) ? 400 : nil, maxHeight: 800)
+        .frame(minHeight: (showingSettings || showingJournal) ? 760 : nil, maxHeight: 900)
         .background(bgDark)
     }
 
@@ -110,6 +115,8 @@ struct MainPopupView: View {
         .overlay(alignment: .bottom) { Divider().background(borderSubtle) }
     }
 
+    @State private var showClearHistoryConfirm = false
+
     private var journalHeader: some View {
         HStack {
             Button(action: { showingJournal = false }) {
@@ -125,6 +132,14 @@ struct MainPopupView: View {
             .buttonStyle(.plain)
             .onHover { backButtonHovered = $0 }
             Spacer()
+            if !state.journalEntries.isEmpty {
+                Button(action: { showClearHistoryConfirm = true }) {
+                    Text("Удалить все")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(purple)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .overlay(alignment: .center) {
             Text("Журнал")
@@ -136,49 +151,124 @@ struct MainPopupView: View {
         .overlay(alignment: .bottom) { Divider().background(borderSubtle) }
     }
 
-    private var journalContent: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(state.journalEntries) { entry in
-                    HStack {
-                        Image(systemName: entry.type == "stand" ? "figure.stand" : "chair.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(purple)
-                            .frame(width: 24, alignment: .leading)
-                        Text(entry.type == "stand" ? "Встал" : "Сесть")
+    private var journalClearHistoryOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.5)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onTapGesture { showClearHistoryConfirm = false }
+            VStack(spacing: 16) {
+                Text("Сбросить всю историю?")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(textPrimary)
+                Text("Очистится журнал и счётчики (стояния, минуты, серия). Таймер продолжит работать.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(textMuted)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 12) {
+                    Button(action: { showClearHistoryConfirm = false }) {
+                        Text("Отмена")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(textPrimary)
-                        Text(journalTimeString(entry.date))
-                            .font(.system(size: 12))
-                            .foregroundStyle(textMuted)
-                        Spacer()
-                        Button(action: { state.removeJournalEntry(id: entry.id) }) {
-                            Image(systemName: "trash")
-                                .font(.system(size: 11))
-                                .foregroundStyle(textMuted)
-                        }
-                        .buttonStyle(.plain)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.white.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .overlay(alignment: .bottom) { Divider().background(borderSubtle) }
+                    .buttonStyle(.plain)
+                    Button(action: {
+                        state.clearAllHistory()
+                        showClearHistoryConfirm = false
+                    }) {
+                        Text("Удалить все")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.red)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
                 }
-                if state.journalEntries.isEmpty {
+            }
+            .padding(20)
+            .frame(width: 260)
+            .background(bgDark)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(borderSubtle, lineWidth: 1))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var journalEntriesByDate: [(date: Date, entries: [JournalEntry])] {
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: state.journalEntries) { calendar.startOfDay(for: $0.date) }
+        return grouped.keys.sorted(by: >).map { (date: $0, entries: grouped[$0]!.sorted { $0.date > $1.date }) }
+    }
+
+    private var journalContent: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                if journalEntriesByDate.isEmpty {
                     Text("Пока нет записей")
                         .font(.system(size: 13))
                         .foregroundStyle(textMuted)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 32)
+                } else {
+                    ForEach(journalEntriesByDate, id: \.date) { group in
+                        Text(journalDateString(group.date))
+                            .font(.system(size: 11, weight: .semibold))
+                            .tracking(0.5)
+                            .foregroundStyle(textMuted)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
+                            .padding(.bottom, 6)
+                        ForEach(group.entries) { entry in
+                            HStack(alignment: .center) {
+                                Image(systemName: entry.type == "stand" ? "figure.stand" : "chair.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(purple)
+                                    .frame(width: 24, alignment: .leading)
+                                Text(journalEntryTitle(entry))
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(textPrimary)
+                                Spacer()
+                                Button(action: { state.removeJournalEntry(id: entry.id) }) {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(textMuted)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .overlay(alignment: .bottom) { Divider().background(borderSubtle) }
+                        }
+                    }
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func journalTimeString(_ date: Date) -> String {
+    private func journalDateString(_ date: Date) -> String {
         let f = DateFormatter()
-        f.dateFormat = "dd.MM  HH:mm"
+        f.dateFormat = "dd.MM.yyyy"
         return f.string(from: date)
+    }
+
+    private func journalEntryTitle(_ entry: JournalEntry) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        let time = f.string(from: entry.date)
+        if entry.type == "stand", let min = entry.durationMinutes, min > 0 {
+            return "Встал \(time)  + \(min) мин."
+        }
+        if entry.type == "stand" {
+            return "Встал \(time)"
+        }
+        return "Сесть \(time)"
     }
     
     private var stateBlock: some View {

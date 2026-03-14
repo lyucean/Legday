@@ -11,8 +11,34 @@ struct JournalEntry: Identifiable, Codable {
     let id: UUID
     let date: Date
     let type: String
-    static func stand(at date: Date = Date()) -> JournalEntry { JournalEntry(id: UUID(), date: date, type: "stand") }
-    static func sit(at date: Date = Date()) -> JournalEntry { JournalEntry(id: UUID(), date: date, type: "sit") }
+    var durationMinutes: Int?
+    init(id: UUID, date: Date, type: String, durationMinutes: Int? = nil) {
+        self.id = id
+        self.date = date
+        self.type = type
+        self.durationMinutes = durationMinutes
+    }
+    enum CodingKeys: String, CodingKey { case id, date, type, durationMinutes }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        date = try c.decode(Date.self, forKey: .date)
+        type = try c.decode(String.self, forKey: .type)
+        durationMinutes = try c.decodeIfPresent(Int.self, forKey: .durationMinutes)
+    }
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(date, forKey: .date)
+        try c.encode(type, forKey: .type)
+        try c.encodeIfPresent(durationMinutes, forKey: .durationMinutes)
+    }
+    static func stand(at date: Date = Date(), durationMinutes: Int? = nil) -> JournalEntry {
+        JournalEntry(id: UUID(), date: date, type: "stand", durationMinutes: durationMinutes)
+    }
+    static func sit(at date: Date = Date()) -> JournalEntry {
+        JournalEntry(id: UUID(), date: date, type: "sit", durationMinutes: nil)
+    }
 }
 
 final class StandUpState: ObservableObject {
@@ -84,19 +110,35 @@ final class StandUpState: ObservableObject {
     }
     
     func sitDown() {
+        if let idx = journalEntries.firstIndex(where: { $0.type == "stand" }) {
+            let stand = journalEntries[idx]
+            let minutes = max(0, Int(Date().timeIntervalSince(stand.date) / 60))
+            journalEntries[idx] = JournalEntry(id: stand.id, date: stand.date, type: "stand", durationMinutes: minutes)
+        }
         addJournalEntry(.sit())
         startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
     }
     
     func addJournalEntry(_ entry: JournalEntry) {
         journalEntries.insert(entry, at: 0)
-        if journalEntries.count > 200 { journalEntries.removeLast() }
+        if journalEntries.count > 500 { journalEntries.removeLast() }
         saveJournal()
     }
     
     func removeJournalEntry(id: UUID) {
         journalEntries.removeAll { $0.id == id }
         saveJournal()
+    }
+
+    /// Сбросить всю историю: журнал и счётчики (стояния, минуты, серия).
+    func clearAllHistory() {
+        journalEntries = []
+        saveJournal()
+        standsToday = 0
+        standingMinutesToday = 0
+        streakDays = 0
+        UserDefaults.standard.removeObject(forKey: "lastStreakDay")
+        saveDailyStats()
     }
     
     private func loadJournal() {
@@ -111,7 +153,9 @@ final class StandUpState: ObservableObject {
     }
     
     func playToggleSound() {
-        NSSound(named: "Tink")?.play()
+        guard let sound = NSSound(named: "Tink") else { return }
+        sound.volume = 1.0
+        sound.play()
     }
 
     /// Добавить или убрать минуты у текущего таймера (+5 / -5 / -1).
