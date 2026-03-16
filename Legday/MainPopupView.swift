@@ -200,23 +200,25 @@ struct MainPopupView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var journalEntriesByDate: [(date: Date, entries: [JournalEntry])] {
+    /// Только сессии стояния (записи "Встал" с проставленной длительностью), сгруппированные по дням.
+    private var journalSessionsByDate: [(date: Date, entries: [JournalEntry])] {
         let calendar = Calendar.current
-        let grouped = Dictionary(grouping: state.journalEntries) { calendar.startOfDay(for: $0.date) }
+        let sessions = state.journalEntries.filter { $0.type == "stand" && $0.durationMinutes != nil }
+        let grouped = Dictionary(grouping: sessions) { calendar.startOfDay(for: $0.date) }
         return grouped.keys.sorted(by: >).map { (date: $0, entries: grouped[$0]!.sorted { $0.date > $1.date }) }
     }
 
     private var journalContent: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                if journalEntriesByDate.isEmpty {
+                if journalSessionsByDate.isEmpty {
                     Text("Пока нет записей")
                         .font(.system(size: 13))
                         .foregroundStyle(textMuted)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 32)
                 } else {
-                    ForEach(journalEntriesByDate, id: \.date) { group in
+                    ForEach(journalSessionsByDate, id: \.date) { group in
                         Text(journalDateString(group.date))
                             .font(.system(size: 11, weight: .semibold))
                             .tracking(0.5)
@@ -226,11 +228,11 @@ struct MainPopupView: View {
                             .padding(.bottom, 6)
                         ForEach(group.entries) { entry in
                             HStack(alignment: .center) {
-                                Image(systemName: entry.type == "stand" ? "figure.stand" : "chair.fill")
+                                Image(systemName: "figure.stand")
                                     .font(.system(size: 12))
                                     .foregroundStyle(purple)
                                     .frame(width: 24, alignment: .leading)
-                                Text(journalEntryTitle(entry))
+                                Text(journalSessionTitle(entry))
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundStyle(textPrimary)
                                 Spacer()
@@ -258,17 +260,14 @@ struct MainPopupView: View {
         return f.string(from: date)
     }
 
-    private func journalEntryTitle(_ entry: JournalEntry) -> String {
+    /// Формат одной сессии: "08:04 - Постоял 13 мин." Длительность ограничена таймером стояния из настроек.
+    private func journalSessionTitle(_ entry: JournalEntry) -> String {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         let time = f.string(from: entry.date)
-        if entry.type == "stand", let min = entry.durationMinutes, min > 0 {
-            return "Встал \(time)  + \(min) мин."
-        }
-        if entry.type == "stand" {
-            return "Встал \(time)"
-        }
-        return "Сесть \(time)"
+        let rawMin = entry.durationMinutes ?? 0
+        let min = min(rawMin, state.settings.standDurationMinutes)
+        return "\(time) - Постоял \(min) мин."
     }
     
     private var stateBlock: some View {

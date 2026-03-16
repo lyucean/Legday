@@ -77,8 +77,11 @@ final class StandUpState: ObservableObject {
     }
     
     func startPhase(_ newPhase: StandUpPhase, durationSeconds: Int) {
-        if phase == .standing, let start = standingPhaseStartDate {
-            addActualStandingMinutes(since: start)
+        if phase == .standing {
+            closeCurrentStandSession()
+            if let start = standingPhaseStartDate {
+                addActualStandingMinutes(since: start)
+            }
         }
         standingPhaseStartDate = nil
         phase = newPhase
@@ -110,12 +113,6 @@ final class StandUpState: ObservableObject {
     }
     
     func sitDown() {
-        if let idx = journalEntries.firstIndex(where: { $0.type == "stand" }) {
-            let stand = journalEntries[idx]
-            let minutes = max(0, Int(Date().timeIntervalSince(stand.date) / 60))
-            journalEntries[idx] = JournalEntry(id: stand.id, date: stand.date, type: "stand", durationMinutes: minutes)
-        }
-        addJournalEntry(.sit())
         startPhase(.sitting, durationSeconds: settings.reminderIntervalMinutes * 60)
     }
     
@@ -124,7 +121,17 @@ final class StandUpState: ObservableObject {
         if journalEntries.count > 500 { journalEntries.removeLast() }
         saveJournal()
     }
-    
+
+    /// Закрывает текущую сессию стояния: проставляет длительность (не больше таймера) последнему "Встал" и добавляет "Сесть".
+    private func closeCurrentStandSession() {
+        guard let idx = journalEntries.firstIndex(where: { $0.type == "stand" && $0.durationMinutes == nil }) else { return }
+        let stand = journalEntries[idx]
+        let rawMin = max(0, Int(Date().timeIntervalSince(stand.date) / 60))
+        let minutes = min(rawMin, settings.standDurationMinutes)
+        journalEntries[idx] = JournalEntry(id: stand.id, date: stand.date, type: "stand", durationMinutes: minutes)
+        addJournalEntry(.sit())
+    }
+
     func removeJournalEntry(id: UUID) {
         journalEntries.removeAll { $0.id == id }
         saveJournal()
@@ -188,7 +195,10 @@ final class StandUpState: ObservableObject {
         pendingNotificationReminder = false
         stopBlinkTimerIfNeeded()
         let extra = 15 * 60
-        let newEnd = (phaseEndDate ?? Date()).addingTimeInterval(TimeInterval(extra))
+        let now = Date()
+        let base = phaseEndDate ?? now
+        // Если время напоминания уже прошло (долго не было), откладываем от текущего момента.
+        let newEnd = base > now ? base.addingTimeInterval(TimeInterval(extra)) : now.addingTimeInterval(TimeInterval(extra))
         phaseEndDate = newEnd
         remainingSeconds = max(0, Int(newEnd.timeIntervalSince(Date())))
         nextReminderDate = newEnd
@@ -391,7 +401,8 @@ final class StandUpState: ObservableObject {
     
     private func addActualStandingMinutes(since startDate: Date) {
         let elapsed = max(0, Int(Date().timeIntervalSince(startDate)))
-        let minutes = elapsed / 60
+        let rawMinutes = elapsed / 60
+        let minutes = min(rawMinutes, settings.standDurationMinutes)
         if minutes > 0 {
             standingMinutesToday += minutes
             saveDailyStats()
