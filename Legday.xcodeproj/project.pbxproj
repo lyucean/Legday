@@ -66,7 +66,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "BUILD_VERSION=$(date +%Y%m%d_%H%M)\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $BUILD_VERSION\" \"${SRCROOT}/Legday/Info.plist\"\n";
+			shellScript = "BUILD_VERSION=$(date +%Y%m%d_%H%M)\nPLIST=\"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Info.plist\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $BUILD_VERSION\" \"$PLIST\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -116,11 +116,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 847A65122CC0382500469E78 /* Build configuration list for PBXNativeTarget "Legday" */;
 			buildPhases = (
-				847A65192CC0382500469E78 /* Set build version */,
 				847A65072CC0382500469E78 /* Sources */,
 				847A65172CC0382500469E78 /* Resources */,
 				847A65082CC0382500469E78 /* Frameworks */,
 				847A65092CC0382500469E78 /* CopyFiles */,
+				847A65192CC0382500469E78 /* Set build version */,
 			);
 			buildRules = (
 			);
@@ -309,6 +309,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = Legday/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -327,6 +328,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = Legday/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
