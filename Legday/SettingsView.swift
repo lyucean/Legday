@@ -193,6 +193,10 @@ struct SettingsFormContent: View {
         return "\(minutes) мин"
     }
 
+    private var appBuildVersion: String {
+        (Bundle.main.infoDictionary?["CFBundleVersion"] as? String) ?? "—"
+    }
+
     private var authorSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             sectionLabel("Автор")
@@ -203,6 +207,9 @@ struct SettingsFormContent: View {
                 .font(.system(size: 12))
                 .foregroundStyle(purpleLight)
                 .tint(purpleLight)
+            Text("Версия \(appBuildVersion)")
+                .font(.system(size: 10))
+                .foregroundStyle(textMuted)
         }
         .padding(.vertical, 20)
     }
