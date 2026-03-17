@@ -46,6 +46,7 @@ struct MainPopupView: View {
         .frame(width: showingSettings ? 340 : 300)
         .frame(minHeight: (showingSettings || showingJournal) ? 760 : nil, maxHeight: 900)
         .background(bgDark)
+        .onAppear { state.resetIfNewDay() }
     }
 
     private var settingsHeader: some View {

@@ -15,7 +15,8 @@
 │  stands_<date>                  →  счётчик вставаний за день            │
 │  standingMin_<date>             →  минуты стоя за день                  │
 │  streakDays                     →  текущая серия дней                    │
-│  lastStreakDay                  →  дата последнего дня серии           │
+│  lastStreakDay                  →  дата последнего дня серии             │
+│  lastResetDay                   →  день последнего сброса счётчиков      │
 │  reminderIntervalMinutes, ...  →  настройки (SettingsStore)            │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -77,9 +78,9 @@
 
 ## 3. Дневная статистика (Daily Stats)
 
-**Ключи в UserDefaults:** `stands_<date>`, `standingMin_<date>`, `streakDays`, `lastStreakDay`  
+**Ключи в UserDefaults:** `stands_<date>`, `standingMin_<date>`, `streakDays`, `lastStreakDay`, `lastResetDay`  
 **Формат даты:** `yyyy-MM-dd` (например `2025-03-16`).  
-**Код:** `StandUpState.swift` — `dayKey()`, `loadDailyStats()`, `saveDailyStats()`, `recordStandCount()`, `addActualStandingMinutes()`, `updateStreak()`, `resetIfNewDay()`, `clearAllHistory()`.
+**Код:** `StandUpState.swift` — `dayKey()`, `loadDailyStats()`, `saveDailyStats()`, `recordStandCount()`, `addActualStandingMinutes()`, `updateStreak()`, `resetIfNewDay()`, `clearAllHistory()`. `resetIfNewDay()` вызывается при запуске приложения и при открытии попапа (MainPopupView.onAppear), чтобы при смене календарного дня обнулять «стояний сегодня» и «стоя за день».
 
 ### Поля (ключи и значения)
 
@@ -89,10 +90,11 @@
 | **standingMin_&lt;date&gt;** | Int | Суммарные минуты стояния за день `date`. Накапливается при завершении фазы стояния (сел или таймер стояния истёк). |
 | **streakDays** | Int | Текущая серия дней подряд с хотя бы одним вставанием. |
 | **lastStreakDay** | String | Дата последнего дня, учтённого в серии, в формате `yyyy-MM-dd`. Нужна для расчёта streak при следующем вставании. |
+| **lastResetDay** | String | Дата последнего дня, для которого считалась «дневная» статистика (`yyyy-MM-dd`). Используется в `resetIfNewDay()`: если текущий день по календарю отличается от `lastResetDay`, счётчики «сегодня» обнуляются и `lastResetDay` обновляется. Так избегают показа вчерашних цифр за сегодня (после перезапуска или если приложение было открыто через полночь). |
 
 ### Связи
 
-- **stands_&lt;date&gt;** и **standingMin_&lt;date&gt;** привязаны к одной и той же дате `date`; для текущего дня ключ совпадает с `dayKey()` (текущая дата). При смене дня (`resetIfNewDay`) для нового дня создаются новые ключи (значения 0 при первом обращении).
+- **stands_&lt;date&gt;** и **standingMin_&lt;date&gt;** привязаны к одной и той же дате `date`; для текущего дня ключ совпадает с `dayKey()` (текущая дата). При смене дня (`resetIfNewDay`) сравнивается текущий день с **lastResetDay**; при отличии счётчики обнуляются и записывается новый ключ для сегодня.
 - **streakDays** и **lastStreakDay** связаны между собой:
   - при вставании: если `lastStreakDay` = вчера → `streakDays += 1`; если `lastStreakDay` не сегодня и не вчера → `streakDays = 1`; затем `lastStreakDay := сегодня`, `streakDays` сохраняется.
 - С журналом: журнал не используется для пересчёта этих ключей; счётчики обновляются по действиям в реальном времени. При `clearAllHistory()` дневные ключи для текущего дня и серия обнуляются (в т.ч. удаляется `lastStreakDay`).
@@ -138,6 +140,7 @@
 | `standingMin_<yyyy-MM-dd>` | Int | Дневная статистика |
 | `streakDays` | Int | Дневная статистика (серия) |
 | `lastStreakDay` | String | Дневная статистика (серия) |
+| `lastResetDay` | String | Дневная статистика (день последнего сброса счётчиков) |
 | `reminderIntervalMinutes` | Int | Настройки |
 | `standDurationMinutes` | Int | Настройки |
 | `soundEnabled` | Bool | Настройки |

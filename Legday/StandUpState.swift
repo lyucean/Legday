@@ -63,7 +63,7 @@ final class StandUpState: ObservableObject {
     private var phaseEndDate: Date?
     private var standingPhaseStartDate: Date?
     private let calendar = Calendar.current
-    private var lastResetDate: Date?
+    private static let lastResetDayKey = "lastResetDay"
     
     var settings: SettingsStore { SettingsStore.shared }
     
@@ -487,21 +487,23 @@ final class StandUpState: ObservableObject {
         return formatter.string(from: Date())
     }
     
-    private func resetIfNewDay() {
+    /// Сбрасывает счётчики «сегодня», если календарный день сменился (по сравнению с lastResetDay в UserDefaults).
+    /// Вызывается при запуске и при открытии попапа, чтобы не показывать вчерашние цифры за сегодня.
+    func resetIfNewDay() {
         let key = dayKey()
-        if lastResetDate == nil {
-            lastResetDate = Date()
+        let lastKey = UserDefaults.standard.string(forKey: Self.lastResetDayKey) ?? ""
+        if lastKey.isEmpty {
+            // Миграция со старой версии (lastResetDay не сохранялся): обнуляем «сегодня», чтобы не показывать старые цифры.
+            standsToday = 0
+            standingMinutesToday = 0
+            UserDefaults.standard.set(key, forKey: Self.lastResetDayKey)
+            saveDailyStats()
             return
         }
-        let lastKey = {
-            let f = DateFormatter()
-            f.dateFormat = "yyyy-MM-dd"
-            return f.string(from: lastResetDate!)
-        }()
         if key != lastKey {
             standsToday = 0
             standingMinutesToday = 0
-            lastResetDate = Date()
+            UserDefaults.standard.set(key, forKey: Self.lastResetDayKey)
             saveDailyStats()
         }
     }
